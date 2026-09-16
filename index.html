@@ -28,8 +28,41 @@ window.addEventListener('unhandledrejection',function(e){__dbgShow('❌ PROMESA:
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<style>
+/* ===== PUERTA GEAYI ===== */
+body.gate-locked{overflow:hidden}
+#geayi-gate{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 100% at 50% 0%,#1b2a4a 0%,#0b1020 60%,#060913 100%);padding:20px;box-sizing:border-box}
+.gate-card{width:100%;max-width:360px;text-align:center;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:32px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.gate-logo{font-family:Fredoka,system-ui,sans-serif;font-weight:700;font-size:52px;letter-spacing:4px;color:#fff;
+  text-shadow:0 0 24px rgba(80,160,255,.8),0 4px 0 rgba(0,0,0,.35);margin:0 0 4px}
+.gate-sub{color:#9fb4d8;font-family:Fredoka,system-ui,sans-serif;font-size:15px;margin:0 0 20px}
+.gate-lock{font-size:40px;margin-bottom:8px}
+#gate-pass{width:100%;box-sizing:border-box;padding:14px 16px;font-size:18px;border-radius:12px;text-align:center;
+  border:2px solid rgba(255,255,255,.2);background:rgba(0,0,0,.35);color:#fff;outline:none;margin-bottom:12px}
+#gate-pass:focus{border-color:#50a0ff}
+#gate-btn{width:100%;padding:14px;font-size:18px;font-weight:700;font-family:Fredoka,system-ui,sans-serif;
+  border:none;border-radius:12px;background:linear-gradient(180deg,#3f9dff,#2470d8);color:#fff;cursor:pointer}
+#gate-btn:disabled{opacity:.6}
+#gate-error{display:none;color:#ff8a8a;font-size:14px;margin-top:12px;font-family:system-ui,sans-serif}
+.gate-note{color:#6b7f9e;font-size:12px;margin-top:16px;font-family:system-ui,sans-serif}
+</style>
 </head>
 <body>
+<!-- ============ PUERTA CON CONTRASEÑA ============ -->
+<div id="geayi-gate">
+  <div class="gate-card">
+    <div class="gate-lock">🔒</div>
+    <h1 class="gate-logo">GEAYI</h1>
+    <p class="gate-sub">Obby Xtreme 3D</p>
+    <input id="gate-pass" type="password" placeholder="Clave de acceso" autocomplete="off" autocapitalize="off">
+    <button id="gate-btn">ENTRAR</button>
+    <p id="gate-error"></p>
+    <p class="gate-note">Zona privada. Pide la clave al dueño.</p>
+  </div>
+</div>
+
 <div id="game"></div>
 <div id="speedlines"></div>
 
@@ -451,69 +484,6 @@ window.addEventListener('unhandledrejection',function(e){__dbgShow('❌ PROMESA:
   </div>
 </div>
 
-<script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="state.js"></script>
-<script src="audio.js"></script>
-<script src="i18n.js"></script>
-<script src="vehicles.js"></script>
-<script src="world.js"></script>
-<script src="neoncity.js"></script>
-<script src="candy.js"></script>
-<script src="family.js"></script>
-<script src="player.js"></script>
-<script src="online.js"></script>
-<script src="travel.js"></script>
-<script src="phase3.js"></script>
-<script src="powers.js"></script>
-<script src="minigames.js"></script>
-<script src="roleplay.js"></script>
-<script src="sports.js"></script>
-<script src="trophies.js"></script>
-<script src="community.js"></script>
-<script src="casa.js"></script>
-<script src="pets.js"></script>
-<script src="fishing.js"></script>
-<script src="racing.js"></script>
-<script src="weather.js"></script>
-<script src="observatory.js"></script>
-<script src="jobs.js"></script>
-<script src="citylife3.js"></script>
-<script src="citylife1.js"></script>
-<script src="citylife2.js"></script>
-<script src="bridges.js"></script>
-<script src="buildmode.js"></script>
-<script src="funpark.js"></script>
-<script src="bowling.js"></script>
-<script src="payments-live.js"></script>
-<script src="monetiza.js"></script>
-<script src="promos.js"></script>
-<script src="dealership.js"></script>
-<script src="vet.js"></script>
-<script src="fireworks.js"></script>
-<script src="zoo.js"></script>
-<script src="concerts.js"></script>
-<script src="carwash.js"></script>
-<script src="train.js"></script>
-<script src="waterpark.js"></script>
-<script src="castle.js"></script>
-<script src="infinite.js"></script>
-<script src="lots.js"></script>
-<script src="themepark.js"></script>
-<script src="aquarium.js"></script>
-<script src="furniture.js"></script>
-<script src="economy.js"></script>
-<script src="safewords.js"></script>
-<script src="agent.js"></script>
-<script src="chat.js"></script>
-<script src="support.js"></script>
-<script src="daynight.js"></script>
-<script src="liveevents.js"></script>
-<script src="motoboat.js"></script>
-<script src="share.js"></script>
-<script src="weapons.js"></script>
-<script src="game.js"></script>
-<script src="ranch.js"></script>
-<script src="vr.js"></script>
+<script src="gate.js"></script>
 </body>
 </html>
