@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>🆘 Soporte GEAYI — Panel del dueño</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Trebuchet MS','Segoe UI',Verdana,sans-serif;background:#0a0e27;color:#fff;margin:0;padding:16px;min-height:100vh}
+  h1{text-align:center;font-size:22px;margin:8px 0 16px}
+  .card{background:#141a3d;border:2px solid #00c2a855;border-radius:16px;padding:14px;margin:0 auto 14px;max-width:560px}
+  label{display:block;font-weight:700;margin:10px 0 4px;font-size:14px}
+  input{width:100%;font-size:16px;padding:12px;border-radius:12px;border:2px solid #00c2a866;background:#0d1230;color:#fff;outline:none}
+  button{font-size:17px;font-weight:900;padding:13px 18px;border:none;border-radius:12px;cursor:pointer;margin:8px 6px 0 0;min-height:52px}
+  .btn-ok{background:#00c2a8;color:#062b27}
+  .btn-go{background:#2456d6;color:#fff;width:100%}
+  .btn-yes{background:#1b8a3d;color:#fff;flex:1}
+  .btn-no{background:#b3261e;color:#fff;flex:1}
+  button:active{transform:scale(.96)}
+  .row{display:flex;gap:8px}
+  .note{font-size:13px;color:#9fb3d8;margin-top:8px;line-height:1.4}
+  .ap{background:#0d1230;border:2px solid #ffffff22;border-radius:14px;padding:12px;margin:10px 0}
+  .ap.verified{border-color:#00c2a8}
+  .ap .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .ap .nm{font-weight:900;font-size:17px}
+  .badge{font-size:12px;font-weight:900;padding:4px 10px;border-radius:999px}
+  .b-pending{background:#7b5e00;color:#ffe95e}
+  .b-approved{background:#0f5c22;color:#9dffb0}
+  .b-rejected{background:#5c1414;color:#ffb3ab}
+  .ap p{margin:6px 0;font-size:14px;line-height:1.45;color:#dbe6ff}
+  .ap .em{color:#9fb3d8;font-size:13px}
+  #w-msg{text-align:center;min-height:24px;font-weight:700;margin:6px 0}
+</style>
+</head>
+<body>
+<h1>🆘 Soporte GEAYI <small style="font-size:13px;color:#9fb3d8">panel del dueño</small></h1>
+
+<div class="card">
+  <label>🔗 URL del worker de soporte</label>
+  <input id="w-url" placeholder="https://tu-worker.workers.dev" autocomplete="off">
+  <label>🔑 Clave admin</label>
+  <input id="w-key" type="password" placeholder="Tu ADMIN_KEY" autocomplete="off">
+  <button id="w-load" class="btn-go">🔄 Guardar y cargar apelaciones</button>
+  <div class="note">La URL y la clave se guardan <b>solo en este teléfono</b> (localStorage). Nunca las compartas por chat.</div>
+</div>
+
+<div id="w-msg"></div>
+<div class="card" id="w-listcard" style="display:none">
+  <h2 style="font-size:18px;margin:0 0 6px">📝 Apelaciones</h2>
+  <div id="w-list"></div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var KURL = 'geayi_sup_wurl', KKEY = 'geayi_sup_wkey';
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function msg(t){ $('w-msg').textContent = t || ''; }
+  function cfg(){
+    return {
+      url: String($('w-url').value || '').trim().replace(/\/$/, ''),
+      key: String($('w-key').value || '').trim()
+    };
+  }
+  function badge(st){
+    var c = st === 'approved' ? 'b-approved' : (st === 'rejected' ? 'b-rejected' : 'b-pending');
+    var t = st === 'approved' ? 'APROBADA' : (st === 'rejected' ? 'RECHAZADA' : 'PENDIENTE');
+    return '<span class="badge ' + c + '">' + t + '</span>';
+  }
+  function reasonLabel(r){
+    return {'contacto':'📞 Contacto','coqueteo':'💬 Coqueteo','encuentro':'📍 Encuentro','financiero':'💳 Dinero'}[r] || esc(r);
+  }
+
+  function render(list){
+    var box = $('w-list');
+    $('w-listcard').style.display = 'block';
+    if (!list.length){ box.innerHTML = '<p class="note">No hay apelaciones todavía. 🎉</p>'; return; }
+    var html = '';
+    for (var i = 0; i < list.length; i++){
+      var a = list[i];
+      var when = '';
+      try { when = new Date(a.ts || 0).toLocaleString('es'); } catch(e){}
+      html += '<div class="ap' + (a.verified ? ' verified' : '') + '" data-id="' + esc(a.id) + '">' +
+        '<div class="hd"><span class="nm">' + esc(a.name) + ' ' + (a.verified ? '✅' : '') + '</span>' + badge(a.status) + '</div>' +
+        '<div class="em">' + esc(a.email) + ' · ' + esc(when) + '</div>' +
+        '<p><b>Motivo:</b> ' + reasonLabel(a.reason) + '</p>' +
+        (a.blockedMsg ? '<p><b>Aviso del filtro:</b> ' + esc(a.blockedMsg) + '</p>' : '') +
+        (a.status === 'pending'
+          ? '<div class="row"><button class="btn-yes" data-dec="approved">✅ Aprobar</button>' +
+            '<button class="btn-no" data-dec="rejected">❌ Rechazar</button></div>'
+          : '') +
+        '</div>';
+    }
+    box.innerHTML = html;
+    var btns = box.querySelectorAll('button[data-dec]');
+    for (var j = 0; j < btns.length; j++){
+      btns[j].addEventListener('click', function(){
+        var card = this.closest ? this.closest('.ap') : null;
+        var id = card ? card.getAttribute('data-id') : '';
+        decide(id, this.getAttribute('data-dec'));
+      });
+    }
+  }
+
+  function load(){
+    var c = cfg();
+    if (c.url.indexOf('https://') !== 0){ msg('⚠️ Escribe la URL del worker (https://...)'); return; }
+    if (!c.key){ msg('⚠️ Escribe tu clave admin'); return; }
+    try { localStorage.setItem(KURL, c.url); localStorage.setItem(KKEY, c.key); } catch(e){}
+    msg('⏳ Cargando...');
+    fetch(c.url + '/appeal/list?key=' + encodeURIComponent(c.key))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.ok){ msg(''); render(d.appeals || []); }
+        else msg('⚠️ ' + ((d && d.error) || 'no se pudo cargar'));
+      })
+      .catch(function(){ msg('⚠️ Sin conexión o URL incorrecta'); });
+  }
+
+  function decide(id, decision){
+    if (!id) return;
+    if (!confirm(decision === 'approved'
+        ? '¿APROBAR esta apelación? El jugador podrá escribir de nuevo.'
+        : '¿RECHAZAR esta apelación? El bloqueo seguirá su curso.')) return;
+    var c = cfg();
+    msg('⏳ Guardando decisión...');
+    fetch(c.url + '/appeal/decide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, decision: decision, key: c.key })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.ok){ msg('✅ Decisión guardada'); load(); }
+        else msg('⚠️ ' + ((d && d.error) || 'no se pudo guardar'));
+      })
+      .catch(function(){ msg('⚠️ Sin conexión'); });
+  }
+
+  $('w-load').addEventListener('click', load);
+  try {
+    var u = localStorage.getItem(KURL), k = localStorage.getItem(KKEY);
+    if (u) $('w-url').value = u;
+    if (k) $('w-key').value = k;
+    if (u && k) load();
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
