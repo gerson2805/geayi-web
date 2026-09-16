@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- DEBUG TEMPORAL: muestra errores en pantalla para diagnosticar en el celular -->
+<script>
+window.__dbgErrs=[];
+function __dbgShow(m){
+  window.__dbgErrs.push(m);
+  try{
+    var d=document.getElementById('dbg-err');
+    if(!d){d=document.createElement('div');d.id='dbg-err';
+      d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:10099;background:#a00;color:#fff;font-size:12px;padding:8px;max-height:20vh;overflow:auto;white-space:pre-wrap;';
+      document.body.appendChild(d);}
+    d.textContent=window.__dbgErrs.join('\n');
+    d.style.display='block';
+    clearTimeout(window.__dbgTO);
+    window.__dbgTO=setTimeout(function(){var x=document.getElementById('dbg-err');if(x)x.style.display='none';},6000);
+  }catch(e){}
+}
+window.addEventListener('error',function(e){__dbgShow('❌ '+(e.message||e.error)+' @'+String(e.filename||'').split('/').pop()+':'+(e.lineno||'?'));});
+window.addEventListener('unhandledrejection',function(e){__dbgShow('❌ PROMESA: '+((e.reason&&e.reason.message)||e.reason));});
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>GEAYI: Obby Xtreme 3D — ¡Salta, esquiva y gana!</title>
+<meta name="description" content="GEAYI: Obby Xtreme 3D — un juego de obstáculos 3D gratis en el navegador. Salta plataformas, esquiva trampas y llega a la meta.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="game"></div>
+<div id="speedlines"></div>
+
+<!-- ============ CARGANDO ============ -->
+<div id="loading">
+  <div class="load-brand">GEAYI</div>
+  <div class="load-sub" data-i18n="app.subtitle">Obby Xtreme 3D</div>
+  <div class="load-bar"><div></div></div>
+</div>
+
+<!-- ============ MENÚ PRINCIPAL ============ -->
+<div id="screen-menu" class="screen">
+  <div class="menu-inner">
+    <h1 class="game-title"><span class="brand">GEAYI</span><br><span class="subtitle" data-i18n="app.subtitle">Obby Xtreme 3D</span></h1>
+    <p class="tagline">¡Salta, esquiva y llega a la meta! 🏁</p>
+    <div class="menu-coins">🪙 <span id="menu-coins">0</span></div>
+    <div class="menu-user hidden" id="menu-user">👤</div>
+    <div class="menu-buttons">
+      <button id="btn-play" class="btn btn-big btn-play">▶ JUGAR</button>
+      <button id="btn-custom" class="btn btn-big">🎨 PERSONALIZAR</button>
+      <button id="btn-trophies" class="btn btn-big">🏆 TROFEOS</button>
+      <button id="btn-historia" class="btn btn-big">📖 HISTORIA</button>
+      <button id="btn-logros" class="btn btn-big">🏅 LOGROS</button>
+      <button id="btn-regalar" class="btn btn-big">🎁 REGALAR</button>
+      <button id="btn-share" class="btn btn-big">📤 COMPARTIR</button>
+      <button id="btn-howto" class="btn btn-big">❓ CÓMO JUGAR</button>
+      <button id="btn-support" class="btn btn-big">🆘 AYUDA</button>
+      <button id="btn-multi" class="btn btn-big btn-play">🌐 MULTIJUGADOR ONLINE</button>
+      <button id="btn-vr-menu" class="btn btn-big hidden">🥽 JUGAR EN VR</button>
+      <button id="btn-store" class="btn btn-big">📲 DESCARGAR LA APP</button>
+      <button id="btn-settings" class="btn btn-small">⚙️ AJUSTES</button>
+      <button id="btn-logout" class="btn btn-small hidden">🚪 Cerrar sesión</button>
+    </div>
+    <div id="lang-picker" class="lang-picker"></div>
+  </div>
+</div>
+
+<!-- ============ SELECCIÓN DE NIVEL ============ -->
+<div id="screen-levels" class="screen hidden">
+  <div class="panel">
+    <h2>Elige tu mundo 🌍</h2>
+    <div id="levels-grid" class="levels-grid"></div>
+    <button id="btn-levels-back" class="btn btn-small">⬅ Volver</button>
+  </div>
+</div>
+
+<!-- ============ 🌍 MIS MUNDOS ============ -->
+<div id="screen-worlds" class="screen hidden">
+  <div class="panel panel-wide">
+    <h2>🌍 Mis Mundos</h2>
+    <div id="worlds-earnings" class="worlds-earnings"></div>
+    <div id="worlds-list" class="levels-grid"></div>
+    <div class="worlds-info">Crea mundos en tus lotes 🪧 (100🪙). Quien visite tu mundo y construya te paga 25🪙 por visita 💰.</div>
+    <button id="btn-world-create" class="btn btn-big">➕ Crear mundo (100🪙)</button>
+    <button id="btn-worlds-back" class="btn btn-small">⬅ Volver</button>
+  </div>
+</div>
+
+<!-- ============ TROFEOS ============ -->
+<div id="screen-trophies" class="screen hidden">
+  <div class="panel panel-wide">
+    <div id="trophies-root"></div>
+    <button id="btn-trophies-back" class="btn btn-small">⬅ Volver</button>
+  </div>
+</div>
+
+<!-- ============ PERSONALIZAR ============ -->
+<div id="screen-custom" class="screen hidden">
+  <div class="panel panel-wide">
+    <h2>🎨 Personaliza tu avatar</h2>
+    <div class="custom-coins">🪙 Tus monedas: <span id="custom-coins">0</span></div>
+    <h3 id="custom-family">⭐ Mis personajes</h3>
+    <div id="family-grid" class="shop-grid"></div>
+    <h3 id="custom-animals">🐾 Animales</h3>
+    <div id="animals-grid" class="shop-grid"></div>
+    <h3>Color del cuerpo</h3>
+    <div id="custom-body" class="swatches"></div>
+    <h3 id="custom-hats">Sombreros <small>(se compran con monedas)</small></h3>
+    <div id="hats-grid" class="shop-grid"></div>
+    <h3>Estelas <small>(se compran con monedas)</small></h3>
+    <div id="trails-grid" class="shop-grid"></div>
+    <h3>🪂 Paracaídas <small>(gratis: se abre solo al caer desde lo alto)</small></h3>
+    <div id="chute-grid" class="shop-grid"></div>
+    <button id="btn-custom-back" class="btn btn-small">⬅ Volver</button>
+  </div>
+</div>
+
+<!-- ============ CÓMO JUGAR ============ -->
+<div id="screen-howto" class="screen overlay hidden">
+  <div class="panel">
+    <h2>❓ Cómo jugar</h2>
+    <ul class="howto-list">
+      <li>🕹️ <b>En el teléfono:</b> mueve el joystick izquierdo para correr y toca <b>SALTAR</b> para brincar.</li>
+      <li>⌨️ <b>En la computadora:</b> usa <b>WASD</b> o las <b>flechas</b> para moverte y <b>ESPACIO</b> para saltar.</li>
+      <li>🪙 Recoge monedas: ¡sirven para comprar sombreros y estelas!</li>
+      <li>🚩 Toca las banderas para guardar tu punto de control.</li>
+      <li>⚠️ Cuidado con las barras giratorias, los pisos que desaparecen y la lava.</li>
+      <li>🟩 Los trampolines verdes te lanzan muy alto.</li>
+      <li>✈️ <b>Aviones:</b> súbete en la pista brillante para volar. Joystick o WASD para dirigir, <b>SALTAR</b> para turbo, botón <b>BAJAR</b> para salir.</li>
+      <li>🚗🚲 <b>Carros y bicis:</b> acércate y toca <b>SUBIR</b> (o tecla <b>E</b>) para manejar.</li>
+      <li>🪂 Ponte el <b>paracaídas</b> en Personalizar: se abre solo si caes desde muy alto.</li>
+      <li>🌍 <b>Mundo libre:</b> aquí no hay niveles ni metas, explora y quédate el tiempo que quieras.</li>
+      <li>🪧 Compra tu <b>lote</b> y construye tu casa o negocio.</li>
+    </ul>
+    <button id="btn-howto-close" class="btn">¡Entendido!</button>
+  </div>
+</div>
+
+<!-- ============ 🆘 AYUDA Y SOPORTE ============ -->
+<div id="screen-support" class="screen hidden">
+  <div class="menu-inner">
+    <h2>🆘 Ayuda y Soporte</h2>
+    <div id="support-root"></div>
+    <button id="btn-support-back" class="btn">← Volver</button>
+  </div>
+</div>
+
+<!-- ============ MULTIJUGADOR: ENTRADA ============ -->
+<div id="screen-auth" class="screen hidden">
+  <div class="panel">
+    <h2>🔐 Jugar online</h2>
+    <p class="auth-sub">Crea tu cuenta gratis para jugar con otras personas en las salas.</p>
+    <div class="menu-buttons">
+      <button id="btn-auth-signup" class="btn btn-big btn-play">✨ Crear cuenta</button>
+      <button id="btn-auth-login" class="btn btn-big">👋 Ya tengo cuenta</button>
+      <button id="btn-auth-back" class="btn btn-small">⬅ Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CREAR CUENTA ============ -->
+<div id="screen-signup" class="screen hidden">
+  <div class="panel">
+    <h2>✨ Crear cuenta</h2>
+    <div class="form">
+      <label>Nombre de jugador
+        <input id="su-name" maxlength="16" placeholder="Ej: SuperSonic_7" autocomplete="username">
+      </label>
+      <label>Correo
+        <input id="su-email" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
+      </label>
+      <label>Contraseña
+        <input id="su-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </label>
+      <label>Repite la contraseña
+        <input id="su-pass2" type="password" placeholder="Otra vez" autocomplete="new-password">
+      </label>
+    </div>
+    <div id="su-error" class="form-error"></div>
+    <div class="menu-buttons">
+      <button id="btn-signup-go" class="btn btn-big btn-play">🚀 Crear mi cuenta</button>
+      <button id="btn-signup-tologin" class="btn btn-small">Ya tengo cuenta</button>
+      <button id="btn-signup-back" class="btn btn-small">⬅ Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ENTRAR ============ -->
+<div id="screen-login" class="screen hidden">
+  <div class="panel">
+    <h2>👋 Entrar</h2>
+    <div class="form">
+      <label>Correo
+        <input id="li-email" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
+      </label>
+      <label>Contraseña
+        <input id="li-pass" type="password" placeholder="Tu contraseña" autocomplete="current-password">
+      </label>
+    </div>
+    <div id="li-error" class="form-error"></div>
+    <div class="menu-buttons">
+      <button id="btn-login-go" class="btn btn-big btn-play">▶ Entrar</button>
+      <button id="btn-login-tosignup" class="btn btn-small">Crear cuenta nueva</button>
+      <button id="btn-login-back" class="btn btn-small">⬅ Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REVISA TU CORREO ============ -->
+<div id="screen-verify" class="screen hidden">
+  <div class="panel">
+    <h2>✉️ Revisa tu correo</h2>
+    <p class="auth-sub">Te enviamos un correo de confirmación a<br><b id="verify-email">tu correo</b>.<br>Toca el enlace del correo para activar tu cuenta.<br><small>(Revisa también la carpeta de spam 📩)</small></p>
+    <div class="menu-buttons">
+      <button id="btn-verify-resend" class="btn btn-big">📨 Reenviar correo</button>
+      <button id="btn-verify-back" class="btn btn-small">⬅ Volver al menú</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ONLINE SIN CONFIGURAR ============ -->
+<div id="screen-setup" class="screen hidden">
+  <div class="panel">
+    <h2>🛠️ Multijugador en camino</h2>
+    <p class="auth-sub">El dueño del juego aún no conecta el servidor.<br>Vuelve pronto: ¡podrás jugar con otras personas! 🎮</p>
+    <div class="menu-buttons">
+      <button id="btn-setup-back" class="btn btn-small">⬅ Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JUGAR ONLINE: MUNDOS Y SALAS ============ -->
+<div id="screen-online" class="screen hidden">
+  <div class="panel panel-wide">
+    <h2>🌐 Jugar online</h2>
+    <div class="online-user">👤 <span id="online-user">—</span></div>
+    <h3>1️⃣ Elige el mundo</h3>
+    <div id="online-worlds" class="levels-grid"></div>
+    <h3>2️⃣ Elige la sala</h3>
+    <div id="online-rooms" class="rooms-list"></div>
+    <div id="online-error" class="form-error"></div>
+    <button id="btn-online-back" class="btn btn-small">⬅ Volver</button>
+  </div>
+</div>
+
+<!-- ============ BANNER DE EVENTO (anuncios) ============ -->
+<div id="banner" class="hidden" aria-live="polite">
+  <div class="banner-inner">
+    <div id="banner-title">¡Bienvenido!</div>
+    <div id="banner-sub"></div>
+  </div>
+</div>
+
+<!-- ============ TARJETA CINEMATOGRÁFICA DE ETAPA (diseño original GEAYI) ============ -->
+<div id="stage-card" class="hidden" aria-hidden="true">
+  <div class="stage-bar stage-bar-top"></div>
+  <div class="stage-mid">
+    <div id="stage-kicker">MUNDO 1</div>
+    <div id="stage-emoji">🌴</div>
+    <div id="stage-name">IMMOKALEE</div>
+    <div class="stage-rule"><span></span></div>
+    <div id="stage-sub">GEAYI · Obby Xtreme 3D</div>
+  </div>
+  <div class="stage-bar stage-bar-bot"></div>
+</div>
+
+<!-- ============ MENÚ LATERAL (Tienda · Mundos · Personaje) ============ -->
+<div id="side-menu" class="hidden">
+  <button id="btn-side-store" class="side-btn side-store" aria-label="Tienda">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.8"/><circle cx="17" cy="20" r="1.8"/><path d="M2 3h3l2.6 12.4a1.5 1.5 0 0 0 1.5 1.1h8.9a1.5 1.5 0 0 0 1.5-1.2L21.5 7H6"/></svg>
+    <span>Tienda</span>
+  </button>
+  <button id="btn-side-worlds" class="side-btn side-worlds" aria-label="Mundos">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.9 5.7 3.9 9S14.5 18.4 12 21c-2.5-2.6-3.9-5.7-3.9-9S9.5 5.6 12 3z"/></svg>
+    <span>Mundos</span>
+  </button>
+  <button id="btn-side-char" class="side-btn side-char" aria-label="Personaje">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+    <span>Personaje</span>
+  </button>
+  <button id="btn-side-jobs" class="side-btn side-jobs" aria-label="Trabajos">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.1-2.1 2.7-2.5z"/></svg>
+    <span>Trabajos</span>
+  </button>
+  <button id="btn-side-powers" class="side-btn side-powers" aria-label="Poderes">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+    <span>Poderes</span>
+  </button>
+  <button id="btn-side-minigames" class="side-btn side-powers" aria-label="Minijuegos">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v4M5 13h4"/><circle cx="16" cy="11.5" r="1.2" fill="currentColor"/><circle cx="18.5" cy="14" r="1.2" fill="currentColor"/></svg>
+    <span>Juegos</span>
+  </button>
+  <button id="btn-side-vida" class="side-btn side-powers" aria-label="Vida">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><rect x="10" y="14" width="4" height="6"/></svg>
+    <span>Vida</span>
+  </button>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <div class="hud-chip">🪙 <span id="hud-coins">0</span></div>
+    <div id="net-chip" class="hud-chip hidden">🌐 Sala <span id="net-room">–</span> · 👥 <span id="net-players">1</span></div>
+    <div id="hud-fx"></div>
+  </div>
+  <div class="hud-center"><span id="hud-level">Mundo 1</span></div>
+  <div class="hud-right">
+    <button id="btn-vr" class="hud-btn hidden" title="Jugar con lentes VR">🥽</button>
+    <button id="btn-chat" class="hud-btn hidden">💬<span id="chat-dot" class="chat-dot hidden"></span></button>
+    <button id="btn-agent" class="hud-btn" title="Agente GEAYI: te ayuda a construir">🤖</button>
+    <button id="hud-music" class="hud-btn">🎵</button>
+    <button id="btn-pause" class="hud-btn">⏸️</button>
+  </div>
+</div>
+
+<!-- ============ 🤖 AGENTE GEAYI: chat ============ -->
+<div id="agent-panel" class="agent-panel hidden">
+  <div class="ag-head" title="Arrastra para mover el chat">
+    <span>🤖 Agente GEAYI</span>
+    <div class="ag-head-btns">
+      <button id="agent-eye" class="ag-x" title="Ocultar/mostrar robot">👁️</button>
+      <button id="agent-close" class="ag-x" title="Cerrar chat">✖</button>
+    </div>
+  </div>
+  <div id="agent-msgs" class="ag-msgs"></div>
+  <div class="ag-row">
+    <input id="agent-input" class="ag-input" maxlength="120" placeholder="Pídeme: hazme una casa…" autocomplete="off" />
+    <button id="agent-send" class="ag-send" title="Enviar">➤</button>
+  </div>
+</div>
+<!-- 🫁 barra de oxígeno del nado -->
+<div id="oxybar" class="oxybar hidden" title="Oxígeno">
+  <div class="oxy-label">🫁</div>
+  <div class="oxy-track"><div id="oxyfill" class="oxy-fill"></div></div>
+</div>
+
+<!-- ============ AJUSTES DE SONIDO ============ -->
+<div id="screen-settings" class="screen overlay hidden">
+  <div class="panel">
+    <h2>⚙️ Ajustes</h2>
+    <div class="menu-buttons">
+      <button id="set-music" class="btn btn-big">🎵 Música: ON</button>
+      <button id="set-sfx" class="btn btn-big">🔊 Efectos: ON</button>
+      <button id="set-ui" class="btn btn-big">🔘 Botones: ON</button>
+      <button id="set-notifs" class="btn btn-big">🔔 Avisos: ON</button>
+      <button id="set-voice" class="btn btn-big">🗣️ Voz: ON</button>
+      <button id="set-storms" class="btn btn-big">⛈️ Tormentas: OFF</button>
+      <button id="set-fast" class="btn btn-big">🚀 Modo rápido: OFF</button>
+      <button id="set-export" class="btn btn-big">📤 Pasar mi progreso</button>
+      <button id="set-close" class="btn btn-big">✖ Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAUSA ============ -->
+<div id="screen-pause" class="screen overlay hidden">
+  <div class="panel">
+    <h2>⏸️ Pausa</h2>
+    <div class="menu-buttons">
+      <button id="btn-resume" class="btn btn-big">▶ Seguir</button>
+      <button id="btn-restart" class="btn btn-big">📍 Volver al inicio</button>
+      <button id="btn-leave-room" class="btn btn-big hidden">🚪 Salir de la sala</button>
+      <button id="btn-quit" class="btn btn-big">🏠 Salir al menú</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VICTORIA ============ -->
+<div id="screen-win" class="screen overlay hidden">
+  <div class="panel win-panel">
+    <h2 id="win-title">🏆 ¡Nivel completado!</h2>
+    <div id="win-newbest" class="newbest hidden">⭐ ¡NUEVO RÉCORD! ⭐</div>
+    <div class="win-stats">
+      <div>⏱️ Tiempo: <b id="win-time">0:00.0</b></div>
+      <div>🥇 Mejor tiempo: <b id="win-best">—</b></div>
+      <div>🪙 Monedas del nivel: <b id="win-coins">0</b></div>
+    </div>
+    <div class="menu-buttons">
+      <button id="btn-next" class="btn btn-big btn-play">➡ Siguiente mundo</button>
+      <button id="btn-replay" class="btn btn-big">🔄 Jugar de nuevo</button>
+      <button id="btn-winmenu" class="btn btn-big">🏠 Menú</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONTROLES TÁCTILES ============ -->
+<div id="touch" class="hidden">
+  <div id="joy-zone">
+    <div id="joy-base"><div id="joy-knob"></div></div>
+  </div>
+  <button id="btn-jump"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V6M5 11l7-7 7 7"/></svg><span>SALTAR</span></button>
+  <!-- ============ BOTÓN DE ACELERAR (carro/bici): el joystick sigue para girar ============ -->
+  <div id="drive-ui" class="hidden">
+    <button id="btn-gas" class="drive-btn drive-gas" aria-label="Acelerar"><span class="drive-ico">🟢</span><span>ACELERAR</span></button>
+  </div>
+</div>
+
+<!-- ============ BOTONES DE VEHÍCULOS (FASE 2) ============ -->
+<button id="btn-board" class="veh-btn hidden">🚗 SUBIR</button>
+<button id="btn-exit" class="veh-btn hidden">⬇️ BAJAR</button>
+<button id="btn-travel" class="veh-btn hidden">✈️ VIAJAR</button>
+<button id="btn-shopbuy" class="veh-btn hidden">🛍️ COMPRAR</button>
+<button id="btn-talk" class="veh-btn hidden">💬 HABLAR</button>
+<button id="btn-pay" class="veh-btn hidden">💰 PAGAR</button>
+<button id="btn-grab" class="veh-btn hidden">🖐️ AGARRAR</button>
+<button id="btn-lot" class="veh-btn hidden">🪧</button>
+<button id="btn-sit" class="veh-btn hidden" style="bottom:calc(382px + env(safe-area-inset-bottom))">🪑 SENTARSE</button>
+<button id="btn-lie" class="veh-btn hidden" style="bottom:calc(382px + env(safe-area-inset-bottom))">🛏️ ACOSTARSE</button>
+<button id="btn-move" class="veh-btn hidden" style="bottom:calc(456px + env(safe-area-inset-bottom))">✋ MOVER</button>
+<button id="btn-place" class="veh-btn hidden" style="bottom:calc(382px + env(safe-area-inset-bottom))">✅ COLOCAR</button>
+<button id="btn-fire" class="veh-btn hidden" style="bottom:calc(530px + env(safe-area-inset-bottom))">🔫 DISPARAR</button>
+<button id="btn-swing" class="veh-btn hidden" style="bottom:calc(530px + env(safe-area-inset-bottom))">🗡️ GOLPE</button>
+
+<!-- ============ VIAJES EN AVIÓN ============ -->
+<div id="screen-travel" class="screen overlay hidden">
+  <div class="panel">
+    <h2>✈️ ¿A dónde volamos?</h2>
+    <div id="travel-dests" class="menu-buttons"></div>
+    <div class="menu-buttons" style="margin-top:14px"><button id="btn-travel-close" class="btn btn-small">✖ Cerrar</button></div>
+  </div>
+</div>
+<div id="screen-takeoff" class="screen overlay hidden">
+  <div class="takeoff-inner">
+    <div class="takeoff-plane">🛫</div>
+    <h2>¡Despegando!</h2>
+    <div id="takeoff-dest" class="takeoff-dest"></div>
+    <div class="takeoff-clouds">☁️ ☁️ ☁️</div>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<!-- ============ CHAT ONLINE ============ -->
+<div id="chat-panel" class="hidden">
+  <div id="chat-head" title="Arrastra para mover el chat"><span>💬 Chat de la sala</span><span><button id="btn-chat-rules" title="Reglas del chat">🛡️</button><button id="btn-chat-close">✖</button></span></div>
+  <div id="chat-msgs"></div>
+  <div id="chat-form">
+    <input id="chat-input" maxlength="120" placeholder="Escribe un mensaje…" autocomplete="off">
+    <button id="btn-chat-send">➤</button>
+  </div>
+</div>
+
+<!-- ============ SIN WEBGL ============ -->
+<div id="nogl" class="screen hidden">
+  <div class="panel">
+    <h2>😢 Sin gráficos 3D</h2>
+    <p id="glmsg">Tu teléfono o navegador no tiene WebGL activado y este juego lo necesita para los gráficos 3D.</p>
+    <p>Prueba con la última versión de Chrome en Android.</p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="state.js"></script>
+<script src="audio.js"></script>
+<script src="i18n.js"></script>
+<script src="vehicles.js"></script>
+<script src="world.js"></script>
+<script src="neoncity.js"></script>
+<script src="candy.js"></script>
+<script src="family.js"></script>
+<script src="player.js"></script>
+<script src="online.js"></script>
+<script src="travel.js"></script>
+<script src="phase3.js"></script>
+<script src="powers.js"></script>
+<script src="minigames.js"></script>
+<script src="roleplay.js"></script>
+<script src="sports.js"></script>
+<script src="trophies.js"></script>
+<script src="community.js"></script>
+<script src="casa.js"></script>
+<script src="pets.js"></script>
+<script src="fishing.js"></script>
+<script src="racing.js"></script>
+<script src="weather.js"></script>
+<script src="observatory.js"></script>
+<script src="jobs.js"></script>
+<script src="citylife3.js"></script>
+<script src="citylife1.js"></script>
+<script src="citylife2.js"></script>
+<script src="bridges.js"></script>
+<script src="buildmode.js"></script>
+<script src="funpark.js"></script>
+<script src="bowling.js"></script>
+<script src="payments-live.js"></script>
+<script src="monetiza.js"></script>
+<script src="promos.js"></script>
+<script src="dealership.js"></script>
+<script src="vet.js"></script>
+<script src="fireworks.js"></script>
+<script src="zoo.js"></script>
+<script src="concerts.js"></script>
+<script src="carwash.js"></script>
+<script src="train.js"></script>
+<script src="waterpark.js"></script>
+<script src="castle.js"></script>
+<script src="infinite.js"></script>
+<script src="lots.js"></script>
+<script src="themepark.js"></script>
+<script src="aquarium.js"></script>
+<script src="furniture.js"></script>
+<script src="economy.js"></script>
+<script src="safewords.js"></script>
+<script src="agent.js"></script>
+<script src="chat.js"></script>
+<script src="support.js"></script>
+<script src="daynight.js"></script>
+<script src="liveevents.js"></script>
+<script src="motoboat.js"></script>
+<script src="share.js"></script>
+<script src="weapons.js"></script>
+<script src="game.js"></script>
+<script src="ranch.js"></script>
+<script src="vr.js"></script>
+</body>
+</html>
